@@ -1,7 +1,7 @@
 <?php
 require 'DB.php';
 
-$username = $_POST['username'] ?? '';
+$username = $_GET['username'] ?? '';
 
 $q = $mysqli->prepare("SELECT uuid FROM user WHERE name = ?");
 $q->bind_param("s", $username);
