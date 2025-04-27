@@ -1,7 +1,7 @@
 <?php
 require 'DB.php';
 
- $uuid = $_POST['user_id'] ?? '';
+$uuid = $_POST['user_id'] ?? '';
 $score = intval($_POST['score'] ?? 0);
 
 $q = $mysqli->prepare("INSERT INTO scores (uuid, score) VALUES (?, ?)");
