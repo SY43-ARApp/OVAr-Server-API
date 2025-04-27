@@ -1,11 +1,17 @@
 <?php
 require 'DB.php';
 
-$user_id = intval($_POST['user_id'] ?? 0);
+ $uuid = $_POST['user_id'] ?? '';
 $score = intval($_POST['score'] ?? 0);
 
-$q = $mysqli->prepare("INSERT INTO Leaderboard (user_id, score) VALUES (?, ?)");
-$q->bind_param("ii", $user_id, $score);
+$q = $mysqli->prepare("INSERT INTO scores (uuid, score) VALUES (?, ?)");
+$q->bind_param("si", $uuid, $score);
+
+// Update bestscore if necessary
+$update = $mysqli->prepare("UPDATE user SET bestscore = ? WHERE uuid = ? AND bestscore < ?");
+$update->bind_param("isi", $score, $uuid, $score);
+$update->execute();
+
 if ($q->execute()) {
     echo "SCORE_ADDED";
 } else {
