@@ -1,13 +1,12 @@
 <?php
 require 'DB.php';
 
-$uuid     = $_POST['uuid'] ?? uniqid('', true);
-$username = $_POST['username'] ?? '';
-
+$uuid     = $_GET['uuid'] ?? uniqid('', true);
+$username = $_GET['username'] ?? '';
 $q = $mysqli->prepare("INSERT INTO user (uuid, name) VALUES (?, ?)");
 $q->bind_param("ss", $uuid, $username);
 if ($q->execute()) {
-    echo "REGISTERED";
+    echo "REGISTERED:".$uuid;
 } else {
     echo "ERROR";
 }
