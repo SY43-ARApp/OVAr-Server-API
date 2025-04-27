@@ -3,10 +3,9 @@ require 'DB.php';
 
 $limit = intval($_GET['limit'] ?? -1);
 
-$sql = "SELECT Users.username, Leaderboard.score
-        FROM Leaderboard
-        JOIN Users ON Users.user_id = Leaderboard.user_id
-        ORDER BY score DESC";
+$sql = "SELECT u.name as username, u.bestscore as score
+        FROM user u
+        ORDER BY bestscore DESC";
 
 if ($limit > 0) {
     $sql .= " LIMIT ?";
