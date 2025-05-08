@@ -1,9 +1,9 @@
 <?php
 require 'DB.php';
 
-$username = $_GET['username'] ?? '';
+$username = $_GET['uuid'] ?? '';
 
-$q = $mysqli->prepare("SELECT uuid FROM user WHERE name = ?");
+$q = $mysqli->prepare("SELECT 'GOOD' FROM user WHERE uuid = '?'");
 $q->bind_param("s", $username);
 $q->execute();
 $result = $q->get_result();
