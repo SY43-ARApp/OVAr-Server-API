@@ -5,7 +5,7 @@ $limit = intval($_GET['limit'] ?? -1);
 
 $sql = "SELECT u.name as username, u.bestscore as score
         FROM user u
-        ORDER BY bestscore DESC";
+        ORDER BY bestscore DESC, name ASC";
 
 if ($limit > 0) {
     $sql .= " LIMIT ?";
