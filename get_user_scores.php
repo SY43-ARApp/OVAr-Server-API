@@ -25,12 +25,12 @@ if(!$uuid)
 }
 
 if ($limit > 0) {
-    $sql = "SELECT score, time FROM score WHERE uuid=? ORDER BY $param $order";
+    $sql = "SELECT score, time, arrows_thrown, planets_hit, levels_passed FROM score WHERE uuid=? ORDER BY $param $order";
     $sql .= " LIMIT ?";
     $q = $mysqli->prepare($sql);
     $q->bind_param("si", $uuid, $limit);
 } else {
-    $sql = "SELECT score, time FROM score WHERE uuid=? ORDER BY $param $order";
+    $sql = "SELECT score, time, arrows_thrown, planets_hit, levels_passed FROM score WHERE uuid=? ORDER BY $param $order";
     $q = $mysqli->prepare($sql);
     $q->bind_param("s", $uuid);
 }
