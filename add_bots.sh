@@ -1,7 +1,7 @@
 #!/bin/bash
 
 API_URL="http://chaelpixserver.ddns.net/apis/ovar"
-BOT_COUNT=100
+BOT_COUNT=250
 NAMES_FILE="names.txt"
 
 echo "Checking HTTP connectivity..."
@@ -22,7 +22,7 @@ if [ $HTTP_STATUS -ne 0 ]; then
 fi
 
 generate_uuid() {
-    cat /proc/sys/kernel/random/uuid
+    echo "bot-$(( RANDOM % 100000000 ))"
 }
 
 # Clean a name: remove all non-alphanumeric characters
@@ -50,7 +50,7 @@ for NAME in "${ALL_NAMES[@]}"; do
     if [[ "$AVAIL" == *'"available":true'* ]]; then
         USED_NAMES+=("$CLEANED_NAME")
         UUID=$(generate_uuid)
-        SCORE=$(( (RANDOM % 1000) * 10 )) # Multiple of 10
+        SCORE=$(( (RANDOM % 6000) * 10 ))
 
         REGISTER_URL="${API_URL}/register.php?uuid=${UUID}&username=${CLEANED_NAME}"
         SCORE_URL="${API_URL}/send_score.php?uuid=${UUID}&score=${SCORE}"
