@@ -28,7 +28,7 @@ if ($userResult->num_rows === 0) {
 }
 
 // Check if skin exists
-$skinCheck = $mysqli->prepare("SELECT id FROM skins WHERE id = ?");
+$skinCheck = $mysqli->prepare("SELECT id, id_type FROM skins WHERE id = ?");
 $skinCheck->bind_param("i", $skinId);
 $skinCheck->execute();
 $skinResult = $skinCheck->get_result();
@@ -39,8 +39,8 @@ if ($skinResult->num_rows === 0) {
 }
 
 // Insert or update userSkins record
-$query = $mysqli->prepare("INSERT INTO userSkins (uuid, skin_id) VALUES (?, ?) 
-                          ON DUPLICATE KEY UPDATE uuid = uuid");
+$query = $mysqli->prepare("INSERT INTO userSkins (user_id, skin_id) VALUES (?, ?) 
+                          ON DUPLICATE KEY UPDATE user_id = user_id");
 $query->bind_param("si", $uuid, $skinId);
 
 if ($query->execute()) {

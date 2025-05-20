@@ -24,8 +24,11 @@ if ($userResult->num_rows === 0) {
     exit;
 }
 
-// Query to get all skins owned by the user
-$query = $mysqli->prepare("SELECT skin_id as skinId FROM userSkins WHERE user_id = ?");
+// Query to get all skins owned by the user with their type
+$query = $mysqli->prepare("SELECT us.skin_id as skinId, s.id_type as type 
+                          FROM userSkins us
+                          JOIN skins s ON us.skin_id = s.id
+                          WHERE us.user_id = ?");
 $query->bind_param("s", $uuid);
 $query->execute();
 $result = $query->get_result();
@@ -40,7 +43,8 @@ if (!$result) {
 $userSkins = [];
 while ($row = $result->fetch_assoc()) {
     $userSkins[] = [
-        'skinId' => intval($row['skinId'])
+        'skinId' => intval($row['skinId']),
+        'type' => intval($row['type'])
     ];
 }
 

@@ -23,7 +23,8 @@ CREATE TABLE score (
 CREATE TABLE skins (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     price INT NOT NULL DEFAULT 0,
-    unlockingScore INT NOT NULL DEFAULT 0
+    unlockingScore INT NOT NULL DEFAULT 0,
+    id_type INT NOT NULL DEFAULT 0 COMMENT '0 pour les flèches, 1 pour planète, 2 pour lunes'
 );
 
 CREATE TABLE userSkins (

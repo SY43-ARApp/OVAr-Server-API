@@ -3,8 +3,8 @@ require 'DB.php';
 
 header('Content-Type: application/json');
 
-// Query to get all skins with their prices and minimum scores
-$query = "SELECT id, price, unlockingScore as minimalScore FROM skins";
+// Query to get all skins with their prices, minimum scores and type
+$query = "SELECT id, price, unlockingScore as minimalScore, id_type as type FROM skins";
 $result = $mysqli->query($query);
 
 // Check if query was successful
@@ -15,11 +15,11 @@ if (!$result) {
 }
 
 $skins = [];
-while ($row = $result->fetch_assoc()) {
-    $skins[] = [
+while ($row = $result->fetch_assoc()) {    $skins[] = [
         'id' => intval($row['id']),
         'price' => intval($row['price']),
-        'minimalScore' => intval($row['minimalScore'])
+        'minimalScore' => intval($row['minimalScore']),
+        'type' => intval($row['type'])
     ];
 }
 
