@@ -3,7 +3,7 @@ require 'DB.php';
 
 // Get parameters from request
 $uuid = $_GET['uuid'] ?? '';
-$amount = intval($_GET['amount'] ?? 0);
+$amount = intval($_GET['amount'] ?? -1);
 
 // Validate inputs
 if (empty($uuid)) {
@@ -11,7 +11,7 @@ if (empty($uuid)) {
     exit;
 }
 
-if ($amount == 0) {
+if ($amount == -1) {
     echo "ERROR_INVALID_AMOUNT";
     exit;
 }
