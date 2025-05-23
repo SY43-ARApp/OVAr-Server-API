@@ -36,80 +36,48 @@ function updateRepository($password) {
     if ($password !== getenv('SCRIPT_MDP')) {
         return ["success" => false, "message" => "Mot de passe incorrect"];
     }
-    
+
     $output = [];
     $return_var = 0;
-    
-    // Changer de répertoire pour le reste des commandes
+
     chdir(__DIR__);
-    
-    // 1. Récupérer les dernières modifications sans les appliquer
-    exec('git fetch 2>&1', $output, $return_var);
+
+    // 1. Récupérer les dernières modifications
+    exec('git fetch origin main 2>&1', $output, $return_var);
     if ($return_var !== 0) {
         return [
-            "success" => false, 
-            "message" => "Erreur lors de la récupération des modifications", 
+            "success" => false,
+            "message" => "Erreur lors du fetch",
             "details" => implode("\n", $output)
         ];
     }
-    
-    // 2. Identifier les fichiers PHP modifiés, ajoutés ou supprimés
-    $php_files_output = [];
-    exec('git diff --name-status origin/main -- "*.php" 2>&1', $php_files_output, $return_var);
-    if ($return_var !== 0) {
+
+    // 2. Forcer la copie exacte de la branche distante (attention, écrase les modifs locales)
+    $reset_output = [];
+    exec('git reset --hard origin/main 2>&1', $reset_output, $reset_return);
+    if ($reset_return !== 0) {
         return [
-            "success" => false, 
-            "message" => "Erreur lors de l'identification des fichiers PHP modifiés", 
-            "details" => implode("\n", $output) . "\n" . implode("\n", $php_files_output)
+            "success" => false,
+            "message" => "Erreur lors du reset --hard",
+            "details" => implode("\n", $reset_output)
         ];
     }
-    
-    // Si aucun fichier PHP n'a été modifié
-    if (empty($php_files_output)) {
+
+    // 3. Supprimer les fichiers non suivis (pour être identique à la branche)
+    $clean_output = [];
+    exec('git clean -fd 2>&1', $clean_output, $clean_return);
+    if ($clean_return !== 0) {
         return [
-            "success" => true, 
-            "message" => "Aucun fichier PHP n'a été modifié", 
-            "details" => "Les fichiers PHP sont déjà à jour."
+            "success" => false,
+            "message" => "Erreur lors du clean",
+            "details" => implode("\n", $clean_output)
         ];
     }
-    
-    // 3. Appliquer les modifications uniquement pour les fichiers PHP
-    $update_output = [];
-    
-    // Récupérer les fichiers PHP un par un
-    foreach ($php_files_output as $file_info) {
-        // Format: [M/A/D]<tab>[filename]
-        $parts = preg_split('/\s+/', $file_info, 2);
-        if (count($parts) !== 2) continue;
-        
-        list($status, $filename) = $parts;
-        
-        switch ($status) {
-            case 'M': // Modifié
-            case 'A': // Ajouté
-                exec("git checkout origin/main -- \"$filename\" 2>&1", $update_output, $checkout_result);
-                if ($checkout_result !== 0) {
-                    return [
-                        "success" => false, 
-                        "message" => "Erreur lors de la mise à jour du fichier $filename", 
-                        "details" => implode("\n", $output) . "\n" . implode("\n", $update_output)
-                    ];
-                }
-                $update_output[] = "Mise à jour de $filename réussie";
-                break;
-            case 'D': // Supprimé
-                if (file_exists($filename)) {
-                    unlink($filename);
-                    $update_output[] = "Suppression de $filename réussie";
-                }
-                break;
-        }
-    }
-    
+
     return [
-        "success" => true, 
-        "message" => "Mise à jour des fichiers PHP réussie", 
-        "details" => implode("\n", $update_output)
+        "success" => true,
+        "message" => "Synchronisation complète réussie",
+        "details" => implode("\n", array_merge($output, $reset_output, $clean_output))
     ];
 }
 
