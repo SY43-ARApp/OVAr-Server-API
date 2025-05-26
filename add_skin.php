@@ -1,13 +1,41 @@
 <?php
 require 'DB.php';
 
+
+function loadEnv($path = '.env') {
+    if (!file_exists($path)) {
+        return false;
+    }
+    
+    $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    foreach ($lines as $line) {
+        // Ignore les commentaires
+        if (strpos(trim($line), '//') === 0) {
+            continue;
+        }
+        
+        // Extraire "key = value" ou "key=value"
+        if (strpos($line, '=') !== false) {
+            list($key, $value) = explode('=', $line, 2);
+            $key = trim($key);
+            $value = trim($value);
+            
+            // Supprimer les guillemets éventuels
+            if (strpos($value, '"') === 0 && strrpos($value, '"') === strlen($value) - 1) {
+                $value = substr($value, 1, -1);
+            }
+            
+            putenv("$key=$value");
+            $_ENV[$key] = $value;
+        }
+    }
+    return true;
+}
+
 // Gestion de l'upload et de l'ajout en BDD
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $password = $_POST['password'] ?? '';
-    $expectedPassword = getenv('MDP_ADDSKIN'); // à définir dans .env
-    echo $password;
-    echo $expectedPassword;
-    if ($password !== $expectedPassword) {
+    if ($password !== getenv('MDP_ADDSKIN')) {
         echo '<div style="color:red">Mot de passe incorrect.</div>';
     } else {
         $type = intval($_POST['type'] ?? -1); // 0: flèche, 1: planète, 2: lune
