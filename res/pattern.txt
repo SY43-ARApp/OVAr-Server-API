@@ -1,0 +1,8 @@
+id_'type'.ext
+
+exemple
+
+1_shop.png
+1_texture.png
+1_obj.obj
+1_name.txt

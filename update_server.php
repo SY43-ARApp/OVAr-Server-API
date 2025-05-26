@@ -33,7 +33,7 @@ function loadEnv($path = '.env') {
 // Fonction pour exécuter la mise à jour
 function updateRepository($password) {
     // Vérifier le mot de passe
-    if ($password !== getenv('SCRIPT_MDP')) {
+    if ($password !== getenv('MDP_UPDATE')) {
         return ["success" => false, "message" => "Mot de passe incorrect"];
     }
 
