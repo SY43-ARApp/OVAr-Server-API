@@ -55,6 +55,23 @@ if ($currentMoney < $skinPrice) {
     exit;
 }
 
+// Check if user best score is sufficient
+$scoreCheck = $mysqli->prepare("SELECT bestscore FROM user WHERE uuid = ?");
+$scoreCheck->bind_param("s", $uuid);
+$scoreCheck->execute();
+$scoreResult = $scoreCheck->get_result();
+if ($scoreResult->num_rows === 0) {
+    echo json_encode(["success" => false, "error" => "USER_NOT_FOUND"]);
+    exit;
+}
+$scoreData = $scoreResult->fetch_assoc();
+$bestScore = intval($scoreData['bestscore'] ?? 0);
+if ($bestScore < $skinData['unlockingScore']) {
+    echo json_encode(["success" => false, "error" => "INSUFFICIENT_SCORE"]);
+    exit;
+}
+
+
 // Deduct money and add skin in a transaction
 $mysqli->begin_transaction();
 try {
