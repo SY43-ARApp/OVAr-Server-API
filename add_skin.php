@@ -34,6 +34,7 @@ function loadEnv($path = '.env') {
 
 // Gestion de l'upload et de l'ajout en BDD
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    loadEnv(); 
     $password = $_POST['password'] ?? '';
     if ($password !== getenv('MDP_ADDSKIN')) {
         echo '<div style="color:red">Mot de passe incorrect.</div>';
