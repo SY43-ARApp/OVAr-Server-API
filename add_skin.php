@@ -34,9 +34,13 @@ function loadEnv($path = '.env') {
 
 // Gestion de l'upload et de l'ajout en BDD
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    loadEnv(); 
+    // Charger le .env si besoin
+    loadEnv();
     $password = $_POST['password'] ?? '';
-    if ($password !== getenv('MDP_ADDSKIN')) {
+    $envPassword = getenv('MDP_ADDSKIN');
+    if (!$envPassword) {
+        echo '<div style="color:red">Erreur : mot de passe non défini côté serveur (MDP_ADDSKIN dans .env).</div>';
+    } elseif ($password !== $envPassword) {
         echo '<div style="color:red">Mot de passe incorrect.</div>';
     } else {
         $type = intval($_POST['type'] ?? -1); // 0: flèche, 1: planète, 2: lune
