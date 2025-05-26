@@ -5,6 +5,8 @@ require 'DB.php';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $password = $_POST['password'] ?? '';
     $expectedPassword = getenv('MDP_ADDSKIN'); // à définir dans .env
+    echo $password;
+    echo $expectedPassword;
     if ($password !== $expectedPassword) {
         echo '<div style="color:red">Mot de passe incorrect.</div>';
     } else {
