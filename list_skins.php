@@ -3,20 +3,28 @@ require 'DB.php';
 
 $resDir = __DIR__ . '/res/';
 $skinFiles = scandir($resDir);
-$skinIds = [];
+$skinIdsWithFiles = [];
 foreach ($skinFiles as $file) {
     if (preg_match('/^(\d+)_name\\.txt$/', $file, $matches)) {
-        $skinIds[] = intval($matches[1]);
+        $skinIdsWithFiles[] = intval($matches[1]);
     }
 }
 
-sort($skinIds);
-$skins = [];
-foreach ($skinIds as $id) {
+// Récupérer tous les ids de la BDD
+$allIds = [];
+$res = $mysqli->query('SELECT id FROM skins');
+while ($row = $res->fetch_assoc()) {
+    $allIds[] = intval($row['id']);
+}
+
+// Séparer les deux listes
+$withFiles = array_intersect($allIds, $skinIdsWithFiles);
+$withoutFiles = array_diff($allIds, $skinIdsWithFiles);
+
+function getSkinData($id, $mysqli, $resDir) {
     $nameFile = $resDir . $id . '_name.txt';
     $shopImg = 'res/' . $id . '_shop.png';
     $name = file_exists($nameFile) ? trim(file_get_contents($nameFile)) : 'Inconnu';
-    // Récupérer prix et unlockingScore
     $stmt = $mysqli->prepare('SELECT price, unlockingScore FROM skins WHERE id = ?');
     $stmt->bind_param('i', $id);
     $stmt->execute();
@@ -26,13 +34,42 @@ foreach ($skinIds as $id) {
         $price = $row['price'];
         $unlockingScore = $row['unlockingScore'];
     }
-    $skins[] = [
+    return [
         'id' => $id,
         'name' => $name,
         'shopImg' => $shopImg,
         'price' => $price,
         'unlockingScore' => $unlockingScore
     ];
+}
+
+// Suppression
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
+    $deleteId = intval($_POST['delete_id']);
+    // Supprimer de la BDD
+    $stmt = $mysqli->prepare('DELETE FROM skins WHERE id = ?');
+    $stmt->bind_param('i', $deleteId);
+    $stmt->execute();
+    // Supprimer les fichiers
+    $pattern = [
+        '_name.txt', '_shop.png', '_texture.png', '_obj.obj'
+    ];
+    foreach ($pattern as $suffix) {
+        $f = $resDir . $deleteId . $suffix;
+        if (file_exists($f)) unlink($f);
+    }
+    echo '<div style="color:green">Skin ' . $deleteId . ' supprimé.</div>';
+    // Refresh lists
+    header('Refresh: 1');
+}
+
+$skinsWithFiles = [];
+foreach ($withFiles as $id) {
+    $skinsWithFiles[] = getSkinData($id, $mysqli, $resDir);
+}
+$skinsWithoutFiles = [];
+foreach ($withoutFiles as $id) {
+    $skinsWithoutFiles[] = getSkinData($id, $mysqli, $resDir);
 }
 ?>
 <!DOCTYPE html>
@@ -65,18 +102,41 @@ foreach ($skinIds as $id) {
             color: #555;
             font-size: 0.95em;
         }
+        .delete-btn {
+            margin-top: 8px;
+            background: #e74c3c;
+            color: #fff;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
-<h2>Skins présents sur le serveur</h2>
+<h2>Skins avec fichiers présents sur le serveur</h2>
 <div>
-<?php foreach ($skins as $skin): ?>
+<?php foreach ($skinsWithFiles as $skin): ?>
     <div class="skin-card">
         <div class="skin-title"><?= htmlspecialchars($skin['name']) ?></div>
         <img src="<?= htmlspecialchars($skin['shopImg']) ?>" alt="shop image">
         <div class="skin-info">ID : <?= $skin['id'] ?></div>
         <div class="skin-info">Prix : <?= $skin['price'] !== null ? $skin['price'] : 'N/A' ?></div>
         <div class="skin-info">Score déblocage : <?= $skin['unlockingScore'] !== null ? $skin['unlockingScore'] : 'N/A' ?></div>
+        <form method="post" style="margin:0"><input type="hidden" name="delete_id" value="<?= $skin['id'] ?>"><button class="delete-btn" type="submit">Supprimer</button></form>
+    </div>
+<?php endforeach; ?>
+</div>
+
+<h2>Skins sans fichiers sur le serveur</h2>
+<div>
+<?php foreach ($skinsWithoutFiles as $skin): ?>
+    <div class="skin-card">
+        <div class="skin-title"><?= htmlspecialchars($skin['name']) ?></div>
+        <div class="skin-info">ID : <?= $skin['id'] ?></div>
+        <div class="skin-info">Prix : <?= $skin['price'] !== null ? $skin['price'] : 'N/A' ?></div>
+        <div class="skin-info">Score déblocage : <?= $skin['unlockingScore'] !== null ? $skin['unlockingScore'] : 'N/A' ?></div>
+        <form method="post" style="margin:0"><input type="hidden" name="delete_id" value="<?= $skin['id'] ?>"><button class="delete-btn" type="submit">Supprimer</button></form>
     </div>
 <?php endforeach; ?>
 </div>
