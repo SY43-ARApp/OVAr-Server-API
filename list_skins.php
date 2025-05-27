@@ -50,7 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
     $stmt = $mysqli->prepare('DELETE FROM skins WHERE id = ?');
     $stmt->bind_param('i', $deleteId);
     $stmt->execute();
-    // Supprimer les fichiers
+    // Supprimer les fichiers s'ils existent
     $pattern = [
         '_name.txt', '_shop.png', '_texture.png', '_obj.obj'
     ];
@@ -58,9 +58,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
         $f = $resDir . $deleteId . $suffix;
         if (file_exists($f)) unlink($f);
     }
+    // Supprimer aussi dans userSkins
+    $stmt2 = $mysqli->prepare('DELETE FROM userSkins WHERE skin_id = ?');
+    $stmt2->bind_param('i', $deleteId);
+    $stmt2->execute();
     echo '<div style="color:green">Skin ' . $deleteId . ' supprimé.</div>';
-    // Refresh lists
-    header('Refresh: 1');
+    // Forcer un vrai refresh pour éviter le repost
+    echo '<script>window.location.href=window.location.href;</script>';
+    exit;
 }
 
 $skinsWithFiles = [];
