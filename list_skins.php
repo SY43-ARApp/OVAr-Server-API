@@ -3,15 +3,10 @@
 //ini_set('display_errors', 1);
 //ini_set('display_startup_errors', 1);
 //error_reporting(E_ALL);
-//
 require 'DB.php';
 
-
 function loadEnv($path = '.env') {
-    if (!file_exists($path)) {
-        return false;
-    }
-    
+    if (!file_exists($path)) return false;
     $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
     foreach ($lines as $line) {
         // Ignore les commentaires
@@ -37,7 +32,59 @@ function loadEnv($path = '.env') {
     return true;
 }
 
+// --- AJOUT DE SKIN ---
+$addSkinMsg = '';
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_skin'])) {
+    loadEnv();
+    $password = $_POST['add_password'] ?? '';
+    $envPassword = getenv('MDP_ADDSKIN');
+    $type = intval($_POST['type'] ?? -1);
+    $name = trim($_POST['name'] ?? '');
+    $price = intval($_POST['price'] ?? 0);
+    $unlockingScore = intval($_POST['unlockingScore'] ?? 0);
+    if (!$envPassword) {
+        $addSkinMsg = '<div style="color:red">Erreur : mot de passe non défini côté serveur (MDP_ADDSKIN dans .env).</div>';
+    } elseif ($password !== $envPassword) {
+        $addSkinMsg = '<div style="color:red">Mot de passe incorrect.</div>';
+    } elseif ($type < 0 || $type > 2 || $name === '') {
+        $addSkinMsg = '<div style="color:red">Erreur : champs manquants ou invalides.</div>';
+    } else {
+        $res = $mysqli->query('SELECT MAX(id) as maxid FROM skins');
+        $row = $res->fetch_assoc();
+        $newId = intval($row['maxid']) + 1;
+        $errors = [];
+        $uploadDir = __DIR__ . '/res/';
+        $pattern = [
+            0 => ['shop' => '_shop.png', 'texture' => '_texture.png', 'obj' => '_obj.obj'],
+            1 => ['shop' => '_shop.png', 'texture' => '_texture.png'],
+            2 => ['shop' => '_shop.png', 'texture' => '_texture.png']
+        ];
+        $filesNeeded = $pattern[$type];
+        foreach ($filesNeeded as $key => $suffix) {
+            if (!isset($_FILES[$key]) || $_FILES[$key]['error'] !== UPLOAD_ERR_OK) {
+                $errors[] = "Fichier $key manquant ou invalide.";
+            }
+        }
+        if (count($errors) === 0) {
+            foreach ($filesNeeded as $key => $suffix) {
+                $dest = $uploadDir . $newId . $suffix;
+                move_uploaded_file($_FILES[$key]['tmp_name'], $dest);
+            }
+            file_put_contents($uploadDir . $newId . '_name.txt', $name);
+            $stmt = $mysqli->prepare('INSERT INTO skins (id, price, unlockingScore, id_type) VALUES (?, ?, ?, ?)');
+            $stmt->bind_param('iiii', $newId, $price, $unlockingScore, $type);
+            if ($stmt->execute()) {
+                $addSkinMsg = '<div style="color:green">Skin ajouté avec succès !</div>';
+            } else {
+                $addSkinMsg = '<div style="color:red">Erreur BDD : ' . $mysqli->error . '</div>';
+            }
+        } else {
+            foreach ($errors as $e) $addSkinMsg .= '<div style="color:red">' . $e . '</div>';
+        }
+    }
+}
 
+// --- LISTE ET SUPPRESSION DES SKINS ---
 $resDir = __DIR__ . '/res/';
 $skinFiles = scandir($resDir);
 $skinIdsWithFiles = [];
@@ -46,18 +93,13 @@ foreach ($skinFiles as $file) {
         $skinIdsWithFiles[] = intval($matches[1]);
     }
 }
-
-// Récupérer tous les ids de la BDD
 $allIds = [];
 $res = $mysqli->query('SELECT id FROM skins');
 while ($row = $res->fetch_assoc()) {
     $allIds[] = intval($row['id']);
 }
-
-// Séparer les deux listes
 $withFiles = array_intersect($allIds, $skinIdsWithFiles);
 $withoutFiles = array_diff($allIds, $skinIdsWithFiles);
-
 function getSkinData($id, $mysqli, $resDir) {
     $nameFile = $resDir . $id . '_name.txt';
     $shopImg = 'res/' . $id . '_shop.png';
@@ -81,42 +123,32 @@ function getSkinData($id, $mysqli, $resDir) {
         'type' => $type
     ];
 }
-
-// Suppression
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
-    // Charger le .env si besoin
     if (function_exists('loadEnv')) loadEnv();
     $password = $_POST['password'] ?? '';
     $envPassword = getenv('MDP_DELETESKIN');
     if (!$envPassword) {
-        echo '<div style="color:red">Erreur : mot de passe non défini côté serveur (MDP_ADDSKIN dans .env).</div>';
+        echo '<div style="color:red">Erreur : mot de passe non défini côté serveur (MDP_DELETESKIN dans .env).</div>';
     } elseif ($password !== $envPassword) {
         echo '<div style="color:red">Mot de passe incorrect.</div>';
     } else {
         $deleteId = intval($_POST['delete_id']);
-        // Supprimer de la BDD
         $stmt = $mysqli->prepare('DELETE FROM skins WHERE id = ?');
         $stmt->bind_param('i', $deleteId);
         $stmt->execute();
-        // Supprimer les fichiers s'ils existent
-        $pattern = [
-            '_name.txt', '_shop.png', '_texture.png', '_obj.obj'
-        ];
+        $pattern = ['_name.txt', '_shop.png', '_texture.png', '_obj.obj'];
         foreach ($pattern as $suffix) {
             $f = $resDir . $deleteId . $suffix;
             if (file_exists($f)) unlink($f);
         }
-        // Supprimer aussi dans userSkins
         $stmt2 = $mysqli->prepare('DELETE FROM userSkins WHERE skin_id = ?');
         $stmt2->bind_param('i', $deleteId);
         $stmt2->execute();
         echo '<div style="color:green">Skin ' . $deleteId . ' supprimé.</div>';
-        // Forcer un vrai refresh pour éviter le repost
         echo '<script>window.location.href=window.location.href;</script>';
         exit;
     }
 }
-
 $skinsWithFiles = [];
 foreach ($withFiles as $id) {
     $skinsWithFiles[] = getSkinData($id, $mysqli, $resDir);
@@ -125,7 +157,6 @@ $skinsWithoutFiles = [];
 foreach ($withoutFiles as $id) {
     $skinsWithoutFiles[] = getSkinData($id, $mysqli, $resDir);
 }
-
 function sortSkinsByType($skins) {
     $sorted = [0 => [], 1 => [], 2 => []];
     foreach ($skins as $skin) {
@@ -137,23 +168,27 @@ function sortSkinsByType($skins) {
     }
     return $sorted;
 }
-
 $skinsWithFilesSorted = sortSkinsByType($skinsWithFiles);
 $skinsWithoutFilesSorted = sortSkinsByType($skinsWithoutFiles);
-
 $typeLabels = [0 => 'Flèches', 1 => 'Planètes', 2 => 'Lunes'];
 ?>
 <!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Liste des skins serveur</title>
+    <title>Gestion des skins serveur</title>
     <style>
         body {
             font-family: 'Segoe UI', Arial, sans-serif;
             background: #f7f7fa;
             margin: 0;
             padding: 0;
+        }
+        h1 {
+            color: #2c3e50;
+            margin-top: 30px;
+            margin-bottom: 10px;
+            text-align: center;
         }
         h2 {
             color: #2c3e50;
@@ -239,9 +274,92 @@ $typeLabels = [0 => 'Flèches', 1 => 'Planètes', 2 => 'Lunes'];
         @media (max-width: 700px) {
             .skin-card { width: 95vw; }
         }
+        .add-skin-form {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px #e0e0e0;
+            max-width: 420px;
+            margin: 30px auto 30px auto;
+            padding: 24px 30px 18px 30px;
+            border: 1px solid #d1d5db;
+        }
+        .add-skin-form label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 500;
+        }
+        .add-skin-form input[type="text"],
+        .add-skin-form input[type="number"],
+        .add-skin-form input[type="password"],
+        .add-skin-form select {
+            width: 100%;
+            padding: 7px 10px;
+            margin-top: 2px;
+            margin-bottom: 12px;
+            border: 1px solid #bbb;
+            border-radius: 4px;
+            font-size: 1em;
+        }
+        .add-skin-form .dropzone {
+            border: 2px dashed #aaa;
+            padding: 16px;
+            margin: 10px 0 18px 0;
+            background: #f9f9f9;
+            border-radius: 8px;
+        }
+        .add-skin-form button[type="submit"] {
+            background: linear-gradient(90deg, #27ae60 60%, #219150 100%);
+            color: #fff;
+            border: none;
+            padding: 9px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 1.08em;
+            margin-top: 8px;
+            transition: background 0.2s;
+        }
+        .add-skin-form button[type="submit"]:hover {
+            background: linear-gradient(90deg, #219150 60%, #27ae60 100%);
+        }
     </style>
+    <script>
+    function updateFields() {
+        var type = document.getElementById('type').value;
+        document.getElementById('objField').style.display = (type == 0) ? 'block' : 'none';
+    }
+    </script>
 </head>
 <body>
+<h1>Gestion des skins serveur</h1>
+<div class="add-skin-form">
+    <h2>Ajouter un skin</h2>
+    <?= $addSkinMsg ?>
+    <form method="post" enctype="multipart/form-data">
+        <label>Mot de passe admin : <input type="password" name="add_password" required></label>
+        <label>Type de skin :
+            <select name="type" id="type" onchange="updateFields()">
+                <option value="0">Flèche</option>
+                <option value="1">Planète</option>
+                <option value="2">Lune</option>
+            </select>
+        </label>
+        <label>Nom du skin : <input type="text" name="name" required></label>
+        <label>Prix : <input type="number" name="price" min="0" value="0"></label>
+        <label>Score de déblocage : <input type="number" name="unlockingScore" min="0" value="0"></label>
+        <div class="dropzone">
+            <label>Image shop (.png) : <input type="file" name="shop" accept="image/png" required></label>
+        </div>
+        <div class="dropzone">
+            <label>Image texture (.png) : <input type="file" name="texture" accept="image/png" required></label>
+        </div>
+        <div class="dropzone" id="objField" style="display:block">
+            <label>Fichier OBJ (.obj) : <input type="file" name="obj" accept=".obj"></label>
+        </div>
+        <button type="submit" name="add_skin" value="1">Ajouter</button>
+    </form>
+    <script>updateFields();</script>
+</div>
 <h2>Skins avec fichiers présents sur le serveur</h2>
 <?php foreach ($typeLabels as $type => $label): ?>
     <h3><?= $label ?></h3>
@@ -269,7 +387,6 @@ $typeLabels = [0 => 'Flèches', 1 => 'Planètes', 2 => 'Lunes'];
     <?php endforeach; ?>
     </div>
 <?php endforeach; ?>
-
 <h2>Skins sans fichiers sur le serveur</h2>
 <?php foreach ($typeLabels as $type => $label): ?>
     <h3><?= $label ?></h3>
