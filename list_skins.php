@@ -1,10 +1,42 @@
 <?php
 // Debug: afficher les erreurs PHP
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
-
+//ini_set('display_errors', 1);
+//ini_set('display_startup_errors', 1);
+//error_reporting(E_ALL);
+//
 require 'DB.php';
+
+
+function loadEnv($path = '.env') {
+    if (!file_exists($path)) {
+        return false;
+    }
+    
+    $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    foreach ($lines as $line) {
+        // Ignore les commentaires
+        if (strpos(trim($line), '//') === 0) {
+            continue;
+        }
+        
+        // Extraire "key = value" ou "key=value"
+        if (strpos($line, '=') !== false) {
+            list($key, $value) = explode('=', $line, 2);
+            $key = trim($key);
+            $value = trim($value);
+            
+            // Supprimer les guillemets éventuels
+            if (strpos($value, '"') === 0 && strrpos($value, '"') === strlen($value) - 1) {
+                $value = substr($value, 1, -1);
+            }
+            
+            putenv("$key=$value");
+            $_ENV[$key] = $value;
+        }
+    }
+    return true;
+}
+
 
 $resDir = __DIR__ . '/res/';
 $skinFiles = scandir($resDir);
@@ -50,27 +82,37 @@ function getSkinData($id, $mysqli, $resDir) {
 
 // Suppression
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
-    $deleteId = intval($_POST['delete_id']);
-    // Supprimer de la BDD
-    $stmt = $mysqli->prepare('DELETE FROM skins WHERE id = ?');
-    $stmt->bind_param('i', $deleteId);
-    $stmt->execute();
-    // Supprimer les fichiers s'ils existent
-    $pattern = [
-        '_name.txt', '_shop.png', '_texture.png', '_obj.obj'
-    ];
-    foreach ($pattern as $suffix) {
-        $f = $resDir . $deleteId . $suffix;
-        if (file_exists($f)) unlink($f);
+    // Charger le .env si besoin
+    if (function_exists('loadEnv')) loadEnv();
+    $password = $_POST['password'] ?? '';
+    $envPassword = getenv('MDP_ADDSKIN');
+    if (!$envPassword) {
+        echo '<div style="color:red">Erreur : mot de passe non défini côté serveur (MDP_ADDSKIN dans .env).</div>';
+    } elseif ($password !== $envPassword) {
+        echo '<div style="color:red">Mot de passe incorrect.</div>';
+    } else {
+        $deleteId = intval($_POST['delete_id']);
+        // Supprimer de la BDD
+        $stmt = $mysqli->prepare('DELETE FROM skins WHERE id = ?');
+        $stmt->bind_param('i', $deleteId);
+        $stmt->execute();
+        // Supprimer les fichiers s'ils existent
+        $pattern = [
+            '_name.txt', '_shop.png', '_texture.png', '_obj.obj'
+        ];
+        foreach ($pattern as $suffix) {
+            $f = $resDir . $deleteId . $suffix;
+            if (file_exists($f)) unlink($f);
+        }
+        // Supprimer aussi dans userSkins
+        $stmt2 = $mysqli->prepare('DELETE FROM userSkins WHERE skin_id = ?');
+        $stmt2->bind_param('i', $deleteId);
+        $stmt2->execute();
+        echo '<div style="color:green">Skin ' . $deleteId . ' supprimé.</div>';
+        // Forcer un vrai refresh pour éviter le repost
+        echo '<script>window.location.href=window.location.href;</script>';
+        exit;
     }
-    // Supprimer aussi dans userSkins
-    $stmt2 = $mysqli->prepare('DELETE FROM userSkins WHERE skin_id = ?');
-    $stmt2->bind_param('i', $deleteId);
-    $stmt2->execute();
-    echo '<div style="color:green">Skin ' . $deleteId . ' supprimé.</div>';
-    // Forcer un vrai refresh pour éviter le repost
-    echo '<script>window.location.href=window.location.href;</script>';
-    exit;
 }
 
 $skinsWithFiles = [];
@@ -133,7 +175,11 @@ foreach ($withoutFiles as $id) {
         <div class="skin-info">ID : <?= $skin['id'] ?></div>
         <div class="skin-info">Prix : <?= $skin['price'] !== null ? $skin['price'] : 'N/A' ?></div>
         <div class="skin-info">Score déblocage : <?= $skin['unlockingScore'] !== null ? $skin['unlockingScore'] : 'N/A' ?></div>
-        <form method="post" style="margin:0"><input type="hidden" name="delete_id" value="<?= $skin['id'] ?>"><button class="delete-btn" type="submit">Supprimer</button></form>
+        <form method="post" style="margin:0">
+            <input type="hidden" name="delete_id" value="<?= $skin['id'] ?>">
+            <input type="password" name="password" placeholder="Mot de passe" required style="margin-bottom:4px;width:90%"><br>
+            <button class="delete-btn" type="submit">Supprimer</button>
+        </form>
     </div>
 <?php endforeach; ?>
 </div>
@@ -146,7 +192,11 @@ foreach ($withoutFiles as $id) {
         <div class="skin-info">ID : <?= $skin['id'] ?></div>
         <div class="skin-info">Prix : <?= $skin['price'] !== null ? $skin['price'] : 'N/A' ?></div>
         <div class="skin-info">Score déblocage : <?= $skin['unlockingScore'] !== null ? $skin['unlockingScore'] : 'N/A' ?></div>
-        <form method="post" style="margin:0"><input type="hidden" name="delete_id" value="<?= $skin['id'] ?>"><button class="delete-btn" type="submit">Supprimer</button></form>
+        <form method="post" style="margin:0">
+            <input type="hidden" name="delete_id" value="<?= $skin['id'] ?>">
+            <input type="password" name="password" placeholder="Mot de passe" required style="margin-bottom:4px;width:90%"><br>
+            <button class="delete-btn" type="submit">Supprimer</button>
+        </form>
     </div>
 <?php endforeach; ?>
 </div>
