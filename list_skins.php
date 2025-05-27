@@ -62,21 +62,23 @@ function getSkinData($id, $mysqli, $resDir) {
     $nameFile = $resDir . $id . '_name.txt';
     $shopImg = 'res/' . $id . '_shop.png';
     $name = file_exists($nameFile) ? trim(file_get_contents($nameFile)) : 'Inconnu';
-    $stmt = $mysqli->prepare('SELECT price, unlockingScore FROM skins WHERE id = ?');
+    $stmt = $mysqli->prepare('SELECT price, unlockingScore, id_type FROM skins WHERE id = ?');
     $stmt->bind_param('i', $id);
     $stmt->execute();
     $result = $stmt->get_result();
-    $price = $unlockingScore = null;
+    $price = $unlockingScore = $type = null;
     if ($row = $result->fetch_assoc()) {
         $price = $row['price'];
         $unlockingScore = $row['unlockingScore'];
+        $type = $row['id_type'];
     }
     return [
         'id' => $id,
         'name' => $name,
         'shopImg' => $shopImg,
         'price' => $price,
-        'unlockingScore' => $unlockingScore
+        'unlockingScore' => $unlockingScore,
+        'type' => $type
     ];
 }
 
@@ -85,7 +87,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
     // Charger le .env si besoin
     if (function_exists('loadEnv')) loadEnv();
     $password = $_POST['password'] ?? '';
-    $envPassword = getenv('MDP_ADDSKIN');
+    $envPassword = getenv('MDP_DELETESKIN');
     if (!$envPassword) {
         echo '<div style="color:red">Erreur : mot de passe non défini côté serveur (MDP_ADDSKIN dans .env).</div>';
     } elseif ($password !== $envPassword) {
@@ -123,6 +125,23 @@ $skinsWithoutFiles = [];
 foreach ($withoutFiles as $id) {
     $skinsWithoutFiles[] = getSkinData($id, $mysqli, $resDir);
 }
+
+function sortSkinsByType($skins) {
+    $sorted = [0 => [], 1 => [], 2 => []];
+    foreach ($skins as $skin) {
+        if (isset($skin['type']) && in_array($skin['type'], [0,1,2])) {
+            $sorted[$skin['type']][] = $skin;
+        } else {
+            $sorted[0][] = $skin; // fallback
+        }
+    }
+    return $sorted;
+}
+
+$skinsWithFilesSorted = sortSkinsByType($skinsWithFiles);
+$skinsWithoutFilesSorted = sortSkinsByType($skinsWithoutFiles);
+
+$typeLabels = [0 => 'Flèches', 1 => 'Planètes', 2 => 'Lunes'];
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -167,38 +186,58 @@ foreach ($withoutFiles as $id) {
 </head>
 <body>
 <h2>Skins avec fichiers présents sur le serveur</h2>
-<div>
-<?php foreach ($skinsWithFiles as $skin): ?>
-    <div class="skin-card">
-        <div class="skin-title"><?= htmlspecialchars($skin['name']) ?></div>
-        <img src="<?= htmlspecialchars($skin['shopImg']) ?>" alt="shop image">
-        <div class="skin-info">ID : <?= $skin['id'] ?></div>
-        <div class="skin-info">Prix : <?= $skin['price'] !== null ? $skin['price'] : 'N/A' ?></div>
-        <div class="skin-info">Score déblocage : <?= $skin['unlockingScore'] !== null ? $skin['unlockingScore'] : 'N/A' ?></div>
-        <form method="post" style="margin:0">
-            <input type="hidden" name="delete_id" value="<?= $skin['id'] ?>">
-            <input type="password" name="password" placeholder="Mot de passe" required style="margin-bottom:4px;width:90%"><br>
-            <button class="delete-btn" type="submit">Supprimer</button>
-        </form>
+<?php foreach ($typeLabels as $type => $label): ?>
+    <h3><?= $label ?></h3>
+    <div>
+    <?php foreach ($skinsWithFilesSorted[$type] as $skin): ?>
+        <div class="skin-card">
+            <div class="skin-title">
+                <?php
+                if ($skin['type'] === 0) echo '🏹 ';
+                elseif ($skin['type'] === 1) echo '🪐 ';
+                elseif ($skin['type'] === 2) echo '🌙 ';
+                ?>
+                <?= htmlspecialchars($skin['name']) ?>
+            </div>
+            <img src="<?= htmlspecialchars($skin['shopImg']) ?>" alt="shop image">
+            <div class="skin-info">ID : <?= $skin['id'] ?></div>
+            <div class="skin-info">Prix : <?= $skin['price'] !== null ? $skin['price'] : 'N/A' ?></div>
+            <div class="skin-info">Score déblocage : <?= $skin['unlockingScore'] !== null ? $skin['unlockingScore'] : 'N/A' ?></div>
+            <form method="post" style="margin:0">
+                <input type="hidden" name="delete_id" value="<?= $skin['id'] ?>">
+                <input type="password" name="password" placeholder="Mot de passe" required style="margin-bottom:4px;width:90%"><br>
+                <button class="delete-btn" type="submit">Supprimer</button>
+            </form>
+        </div>
+    <?php endforeach; ?>
     </div>
 <?php endforeach; ?>
-</div>
 
 <h2>Skins sans fichiers sur le serveur</h2>
-<div>
-<?php foreach ($skinsWithoutFiles as $skin): ?>
-    <div class="skin-card">
-        <div class="skin-title"><?= htmlspecialchars($skin['name']) ?></div>
-        <div class="skin-info">ID : <?= $skin['id'] ?></div>
-        <div class="skin-info">Prix : <?= $skin['price'] !== null ? $skin['price'] : 'N/A' ?></div>
-        <div class="skin-info">Score déblocage : <?= $skin['unlockingScore'] !== null ? $skin['unlockingScore'] : 'N/A' ?></div>
-        <form method="post" style="margin:0">
-            <input type="hidden" name="delete_id" value="<?= $skin['id'] ?>">
-            <input type="password" name="password" placeholder="Mot de passe" required style="margin-bottom:4px;width:90%"><br>
-            <button class="delete-btn" type="submit">Supprimer</button>
-        </form>
+<?php foreach ($typeLabels as $type => $label): ?>
+    <h3><?= $label ?></h3>
+    <div>
+    <?php foreach ($skinsWithoutFilesSorted[$type] as $skin): ?>
+        <div class="skin-card">
+            <div class="skin-title">
+                <?php
+                if ($skin['type'] === 0) echo '🏹 ';
+                elseif ($skin['type'] === 1) echo '🪐 ';
+                elseif ($skin['type'] === 2) echo '🌙 ';
+                ?>
+                <?= htmlspecialchars($skin['name']) ?>
+            </div>
+            <div class="skin-info">ID : <?= $skin['id'] ?></div>
+            <div class="skin-info">Prix : <?= $skin['price'] !== null ? $skin['price'] : 'N/A' ?></div>
+            <div class="skin-info">Score déblocage : <?= $skin['unlockingScore'] !== null ? $skin['unlockingScore'] : 'N/A' ?></div>
+            <form method="post" style="margin:0">
+                <input type="hidden" name="delete_id" value="<?= $skin['id'] ?>">
+                <input type="password" name="password" placeholder="Mot de passe" required style="margin-bottom:4px;width:90%"><br>
+                <button class="delete-btn" type="submit">Supprimer</button>
+            </form>
+        </div>
+    <?php endforeach; ?>
     </div>
 <?php endforeach; ?>
-</div>
 </body>
 </html>
