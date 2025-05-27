@@ -149,38 +149,95 @@ $typeLabels = [0 => 'Flèches', 1 => 'Planètes', 2 => 'Lunes'];
     <meta charset="UTF-8">
     <title>Liste des skins serveur</title>
     <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: #f7f7fa;
+            margin: 0;
+            padding: 0;
+        }
+        h2 {
+            color: #2c3e50;
+            margin-top: 30px;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        h3 {
+            color: #34495e;
+            margin-left: 20px;
+            margin-bottom: 5px;
+        }
+        .skin-list-section {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-start;
+            margin-bottom: 30px;
+        }
         .skin-card {
             display: inline-block;
-            border: 1px solid #ccc;
-            border-radius: 8px;
-            margin: 10px;
-            padding: 10px;
-            width: 200px;
+            border: 1px solid #d1d5db;
+            border-radius: 12px;
+            margin: 12px 10px;
+            padding: 16px 12px 12px 12px;
+            width: 220px;
+            background: #fff;
             text-align: center;
-            box-shadow: 2px 2px 8px #eee;
+            box-shadow: 0 2px 8px #e0e0e0;
+            transition: box-shadow 0.2s;
+            position: relative;
+        }
+        .skin-card:hover {
+            box-shadow: 0 4px 16px #b0b0b0;
         }
         .skin-card img {
             max-width: 100%;
             max-height: 120px;
-            margin-bottom: 8px;
+            margin-bottom: 10px;
+            border-radius: 6px;
+            background: #f0f0f0;
         }
         .skin-title {
             font-weight: bold;
-            font-size: 1.1em;
-            margin-bottom: 6px;
+            font-size: 1.15em;
+            margin-bottom: 8px;
+            color: #222;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+        .skin-title span.emoji {
+            font-size: 1.3em;
         }
         .skin-info {
             color: #555;
-            font-size: 0.95em;
+            font-size: 0.98em;
+            margin-bottom: 2px;
         }
         .delete-btn {
-            margin-top: 8px;
-            background: #e74c3c;
+            margin-top: 10px;
+            background: linear-gradient(90deg, #e74c3c 60%, #c0392b 100%);
             color: #fff;
             border: none;
-            padding: 6px 12px;
-            border-radius: 4px;
+            padding: 7px 16px;
+            border-radius: 5px;
             cursor: pointer;
+            font-weight: 500;
+            font-size: 1em;
+            transition: background 0.2s;
+        }
+        .delete-btn:hover {
+            background: linear-gradient(90deg, #c0392b 60%, #e74c3c 100%);
+        }
+        form input[type="password"] {
+            margin-bottom: 6px;
+            width: 90%;
+            padding: 5px 8px;
+            border: 1px solid #bbb;
+            border-radius: 4px;
+            font-size: 1em;
+        }
+        @media (max-width: 700px) {
+            .skin-card { width: 95vw; }
         }
     </style>
 </head>
@@ -188,15 +245,15 @@ $typeLabels = [0 => 'Flèches', 1 => 'Planètes', 2 => 'Lunes'];
 <h2>Skins avec fichiers présents sur le serveur</h2>
 <?php foreach ($typeLabels as $type => $label): ?>
     <h3><?= $label ?></h3>
-    <div>
+    <div class="skin-list-section">
     <?php foreach ($skinsWithFilesSorted[$type] as $skin): ?>
         <div class="skin-card">
             <div class="skin-title">
-                <?php
-                if ($skin['type'] === 0) echo '🏹 ';
-                elseif ($skin['type'] === 1) echo '🪐 ';
-                elseif ($skin['type'] === 2) echo '🌙 ';
-                ?>
+                <span class="emoji"><?php
+                if ($skin['type'] === 0) echo '🏹';
+                elseif ($skin['type'] === 1) echo '🪐';
+                elseif ($skin['type'] === 2) echo '🌙';
+                ?></span>
                 <?= htmlspecialchars($skin['name']) ?>
             </div>
             <img src="<?= htmlspecialchars($skin['shopImg']) ?>" alt="shop image">
@@ -205,7 +262,7 @@ $typeLabels = [0 => 'Flèches', 1 => 'Planètes', 2 => 'Lunes'];
             <div class="skin-info">Score déblocage : <?= $skin['unlockingScore'] !== null ? $skin['unlockingScore'] : 'N/A' ?></div>
             <form method="post" style="margin:0">
                 <input type="hidden" name="delete_id" value="<?= $skin['id'] ?>">
-                <input type="password" name="password" placeholder="Mot de passe" required style="margin-bottom:4px;width:90%"><br>
+                <input type="password" name="password" placeholder="Mot de passe" required><br>
                 <button class="delete-btn" type="submit">Supprimer</button>
             </form>
         </div>
@@ -216,15 +273,15 @@ $typeLabels = [0 => 'Flèches', 1 => 'Planètes', 2 => 'Lunes'];
 <h2>Skins sans fichiers sur le serveur</h2>
 <?php foreach ($typeLabels as $type => $label): ?>
     <h3><?= $label ?></h3>
-    <div>
+    <div class="skin-list-section">
     <?php foreach ($skinsWithoutFilesSorted[$type] as $skin): ?>
         <div class="skin-card">
             <div class="skin-title">
-                <?php
-                if ($skin['type'] === 0) echo '🏹 ';
-                elseif ($skin['type'] === 1) echo '🪐 ';
-                elseif ($skin['type'] === 2) echo '🌙 ';
-                ?>
+                <span class="emoji"><?php
+                if ($skin['type'] === 0) echo '🏹';
+                elseif ($skin['type'] === 1) echo '🪐';
+                elseif ($skin['type'] === 2) echo '🌙';
+                ?></span>
                 <?= htmlspecialchars($skin['name']) ?>
             </div>
             <div class="skin-info">ID : <?= $skin['id'] ?></div>
@@ -232,7 +289,7 @@ $typeLabels = [0 => 'Flèches', 1 => 'Planètes', 2 => 'Lunes'];
             <div class="skin-info">Score déblocage : <?= $skin['unlockingScore'] !== null ? $skin['unlockingScore'] : 'N/A' ?></div>
             <form method="post" style="margin:0">
                 <input type="hidden" name="delete_id" value="<?= $skin['id'] ?>">
-                <input type="password" name="password" placeholder="Mot de passe" required style="margin-bottom:4px;width:90%"><br>
+                <input type="password" name="password" placeholder="Mot de passe" required><br>
                 <button class="delete-btn" type="submit">Supprimer</button>
             </form>
         </div>
