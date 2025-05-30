@@ -184,6 +184,28 @@ $typeLabels = [0 => 'Flèches', 1 => 'Planètes', 2 => 'Lunes'];
             margin: 0;
             padding: 0;
         }
+        .main-flex-container {
+            display: flex;
+            align-items: flex-start;
+            width: 100%;
+            min-height: 100vh;
+        }
+        .add-skin-form {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px #e0e0e0;
+            width: 420px;
+            min-width: 320px;
+            max-width: 420px;
+            margin: 30px 0 30px 30px;
+            padding: 24px 30px 18px 30px;
+            border: 1px solid #d1d5db;
+            flex-shrink: 0;
+        }
+        .main-content {
+            flex: 1;
+            padding: 0 30px;
+        }
         h1 {
             color: #2c3e50;
             margin-top: 30px;
@@ -271,6 +293,19 @@ $typeLabels = [0 => 'Flèches', 1 => 'Planètes', 2 => 'Lunes'];
             border-radius: 4px;
             font-size: 1em;
         }
+        @media (max-width: 900px) {
+            .main-flex-container {
+                flex-direction: column;
+            }
+            .add-skin-form {
+                margin: 30px auto 0 auto;
+                width: 95vw;
+                max-width: 98vw;
+            }
+            .main-content {
+                padding: 0 5vw;
+            }
+        }
         @media (max-width: 700px) {
             .skin-card { width: 95vw; }
         }
@@ -332,86 +367,90 @@ $typeLabels = [0 => 'Flèches', 1 => 'Planètes', 2 => 'Lunes'];
 </head>
 <body>
 <h1>Gestion des skins serveur</h1>
-<div class="add-skin-form">
-    <h2>Ajouter un skin</h2>
-    <?= $addSkinMsg ?>
-    <form method="post" enctype="multipart/form-data">
-        <label>Mot de passe admin : <input type="password" name="add_password" required></label>
-        <label>Type de skin :
-            <select name="type" id="type" onchange="updateFields()">
-                <option value="0">Flèche</option>
-                <option value="1">Planète</option>
-                <option value="2">Lune</option>
-            </select>
-        </label>
-        <label>Nom du skin : <input type="text" name="name" required></label>
-        <label>Prix : <input type="number" name="price" min="0" value="0"></label>
-        <label>Score de déblocage : <input type="number" name="unlockingScore" min="0" value="0"></label>
-        <div class="dropzone">
-            <label>Image shop (.png) : <input type="file" name="shop" accept="image/png" required></label>
-        </div>
-        <div class="dropzone">
-            <label>Image texture (.png) : <input type="file" name="texture" accept="image/png" required></label>
-        </div>
-        <div class="dropzone" id="objField" style="display:block">
-            <label>Fichier OBJ (.obj) : <input type="file" name="obj" accept=".obj"></label>
-        </div>
-        <button type="submit" name="add_skin" value="1">Ajouter</button>
-    </form>
-    <script>updateFields();</script>
+<div class="main-flex-container">
+    <div class="add-skin-form">
+        <h2>Ajouter un skin</h2>
+        <?= $addSkinMsg ?>
+        <form method="post" enctype="multipart/form-data">
+            <label>Mot de passe admin : <input type="password" name="add_password" required></label>
+            <label>Type de skin :
+                <select name="type" id="type" onchange="updateFields()">
+                    <option value="0">Flèche</option>
+                    <option value="1">Planète</option>
+                    <option value="2">Lune</option>
+                </select>
+            </label>
+            <label>Nom du skin : <input type="text" name="name" required></label>
+            <label>Prix : <input type="number" name="price" min="0" value="0"></label>
+            <label>Score de déblocage : <input type="number" name="unlockingScore" min="0" value="0"></label>
+            <div class="dropzone">
+                <label>Image shop (.png) : <input type="file" name="shop" accept="image/png" required></label>
+            </div>
+            <div class="dropzone">
+                <label>Image texture (.png) : <input type="file" name="texture" accept="image/png" required></label>
+            </div>
+            <div class="dropzone" id="objField" style="display:block">
+                <label>Fichier OBJ (.obj) : <input type="file" name="obj" accept=".obj"></label>
+            </div>
+            <button type="submit" name="add_skin" value="1">Ajouter</button>
+        </form>
+        <script>updateFields();</script>
+    </div>
+    <div class="main-content">
+        <h2>Skins avec fichiers présents sur le serveur</h2>
+        <?php foreach ($typeLabels as $type => $label): ?>
+            <h3><?= $label ?></h3>
+            <div class="skin-list-section">
+            <?php foreach ($skinsWithFilesSorted[$type] as $skin): ?>
+                <div class="skin-card">
+                    <div class="skin-title">
+                        <span class="emoji"><?php
+                        if ($skin['type'] === 0) echo '🏹';
+                        elseif ($skin['type'] === 1) echo '🪐';
+                        elseif ($skin['type'] === 2) echo '🌙';
+                        ?></span>
+                        <?= htmlspecialchars($skin['name']) ?>
+                    </div>
+                    <img src="<?= htmlspecialchars($skin['shopImg']) ?>" alt="shop image">
+                    <div class="skin-info">ID : <?= $skin['id'] ?></div>
+                    <div class="skin-info">Prix : <?= $skin['price'] !== null ? $skin['price'] : 'N/A' ?></div>
+                    <div class="skin-info">Score déblocage : <?= $skin['unlockingScore'] !== null ? $skin['unlockingScore'] : 'N/A' ?></div>
+                    <form method="post" style="margin:0">
+                        <input type="hidden" name="delete_id" value="<?= $skin['id'] ?>">
+                        <input type="password" name="password" placeholder="Mot de passe" required><br>
+                        <button class="delete-btn" type="submit">Supprimer</button>
+                    </form>
+                </div>
+            <?php endforeach; ?>
+            </div>
+        <?php endforeach; ?>
+        <h2>Skins sans fichiers sur le serveur</h2>
+        <?php foreach ($typeLabels as $type => $label): ?>
+            <h3><?= $label ?></h3>
+            <div class="skin-list-section">
+            <?php foreach ($skinsWithoutFilesSorted[$type] as $skin): ?>
+                <div class="skin-card">
+                    <div class="skin-title">
+                        <span class="emoji"><?php
+                        if ($skin['type'] === 0) echo '🏹';
+                        elseif ($skin['type'] === 1) echo '🪐';
+                        elseif ($skin['type'] === 2) echo '🌙';
+                        ?></span>
+                        <?= htmlspecialchars($skin['name']) ?>
+                    </div>
+                    <div class="skin-info">ID : <?= $skin['id'] ?></div>
+                    <div class="skin-info">Prix : <?= $skin['price'] !== null ? $skin['price'] : 'N/A' ?></div>
+                    <div class="skin-info">Score déblocage : <?= $skin['unlockingScore'] !== null ? $skin['unlockingScore'] : 'N/A' ?></div>
+                    <form method="post" style="margin:0">
+                        <input type="hidden" name="delete_id" value="<?= $skin['id'] ?>">
+                        <input type="password" name="password" placeholder="Mot de passe" required><br>
+                        <button class="delete-btn" type="submit">Supprimer</button>
+                    </form>
+                </div>
+            <?php endforeach; ?>
+            </div>
+        <?php endforeach; ?>
+    </div>
 </div>
-<h2>Skins avec fichiers présents sur le serveur</h2>
-<?php foreach ($typeLabels as $type => $label): ?>
-    <h3><?= $label ?></h3>
-    <div class="skin-list-section">
-    <?php foreach ($skinsWithFilesSorted[$type] as $skin): ?>
-        <div class="skin-card">
-            <div class="skin-title">
-                <span class="emoji"><?php
-                if ($skin['type'] === 0) echo '🏹';
-                elseif ($skin['type'] === 1) echo '🪐';
-                elseif ($skin['type'] === 2) echo '🌙';
-                ?></span>
-                <?= htmlspecialchars($skin['name']) ?>
-            </div>
-            <img src="<?= htmlspecialchars($skin['shopImg']) ?>" alt="shop image">
-            <div class="skin-info">ID : <?= $skin['id'] ?></div>
-            <div class="skin-info">Prix : <?= $skin['price'] !== null ? $skin['price'] : 'N/A' ?></div>
-            <div class="skin-info">Score déblocage : <?= $skin['unlockingScore'] !== null ? $skin['unlockingScore'] : 'N/A' ?></div>
-            <form method="post" style="margin:0">
-                <input type="hidden" name="delete_id" value="<?= $skin['id'] ?>">
-                <input type="password" name="password" placeholder="Mot de passe" required><br>
-                <button class="delete-btn" type="submit">Supprimer</button>
-            </form>
-        </div>
-    <?php endforeach; ?>
-    </div>
-<?php endforeach; ?>
-<h2>Skins sans fichiers sur le serveur</h2>
-<?php foreach ($typeLabels as $type => $label): ?>
-    <h3><?= $label ?></h3>
-    <div class="skin-list-section">
-    <?php foreach ($skinsWithoutFilesSorted[$type] as $skin): ?>
-        <div class="skin-card">
-            <div class="skin-title">
-                <span class="emoji"><?php
-                if ($skin['type'] === 0) echo '🏹';
-                elseif ($skin['type'] === 1) echo '🪐';
-                elseif ($skin['type'] === 2) echo '🌙';
-                ?></span>
-                <?= htmlspecialchars($skin['name']) ?>
-            </div>
-            <div class="skin-info">ID : <?= $skin['id'] ?></div>
-            <div class="skin-info">Prix : <?= $skin['price'] !== null ? $skin['price'] : 'N/A' ?></div>
-            <div class="skin-info">Score déblocage : <?= $skin['unlockingScore'] !== null ? $skin['unlockingScore'] : 'N/A' ?></div>
-            <form method="post" style="margin:0">
-                <input type="hidden" name="delete_id" value="<?= $skin['id'] ?>">
-                <input type="password" name="password" placeholder="Mot de passe" required><br>
-                <button class="delete-btn" type="submit">Supprimer</button>
-            </form>
-        </div>
-    <?php endforeach; ?>
-    </div>
-<?php endforeach; ?>
 </body>
 </html>
