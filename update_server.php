@@ -63,13 +63,13 @@ function updateRepository($password) {
         ];
     }
 
-    // 3. Supprimer les fichiers non suivis (pour être identique à la branche)
+    // 3. Supprimer les fichiers non suivis (pour être identique à la branche), mais ignorer res/
     $clean_output = [];
-    exec('git clean -fd 2>&1', $clean_output, $clean_return);
+    exec('git clean -fd -e res/ 2>&1', $clean_output, $clean_return);
     if ($clean_return !== 0) {
         return [
             "success" => false,
-            "message" => "Erreur lors du clean",
+            "message" => "Erreur lors du clean (hors res/)",
             "details" => implode("\n", $clean_output)
         ];
     }

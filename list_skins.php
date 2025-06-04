@@ -1,9 +1,14 @@
 <?php
-// Debug: afficher les erreurs PHP
-//ini_set('display_errors', 1);
-//ini_set('display_startup_errors', 1);
-//error_reporting(E_ALL);
-require 'DB.php';
+$mysqli = null;
+$dbError = '';
+try {
+    require 'DB.php';
+    if (!isset($mysqli) || !is_object($mysqli) || property_exists($mysqli, 'connect_errno') && $mysqli->connect_errno) {
+        throw new Exception('Erreur connexion BDD : ' . (is_object($mysqli) ? $mysqli->connect_error : 'mysqli non initialisé'));
+    }
+} catch (Exception $e) {
+    $dbError = $e->getMessage();
+}
 
 function loadEnv($path = '.env') {
     if (!file_exists($path)) return false;
@@ -35,51 +40,55 @@ function loadEnv($path = '.env') {
 // --- AJOUT DE SKIN ---
 $addSkinMsg = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_skin'])) {
-    loadEnv();
-    $password = $_POST['add_password'] ?? '';
-    $envPassword = getenv('MDP_ADDSKIN');
-    $type = intval($_POST['type'] ?? -1);
-    $name = trim($_POST['name'] ?? '');
-    $price = intval($_POST['price'] ?? 0);
-    $unlockingScore = intval($_POST['unlockingScore'] ?? 0);
-    if (!$envPassword) {
-        $addSkinMsg = '<div style="color:red">Erreur : mot de passe non défini côté serveur (MDP_ADDSKIN dans .env).</div>';
-    } elseif ($password !== $envPassword) {
-        $addSkinMsg = '<div style="color:red">Mot de passe incorrect.</div>';
-    } elseif ($type < 0 || $type > 2 || $name === '') {
-        $addSkinMsg = '<div style="color:red">Erreur : champs manquants ou invalides.</div>';
+    if ($dbError) {
+        $addSkinMsg = '<div style="color:red">' . htmlspecialchars($dbError) . '</div>';
     } else {
-        $res = $mysqli->query('SELECT MAX(id) as maxid FROM skins');
-        $row = $res->fetch_assoc();
-        $newId = intval($row['maxid']) + 1;
-        $errors = [];
-        $uploadDir = __DIR__ . '/res/';
-        $pattern = [
-            0 => ['shop' => '_shop.png', 'texture' => '_texture.png', 'obj' => '_obj.obj'],
-            1 => ['shop' => '_shop.png', 'texture' => '_texture.png'],
-            2 => ['shop' => '_shop.png', 'texture' => '_texture.png']
-        ];
-        $filesNeeded = $pattern[$type];
-        foreach ($filesNeeded as $key => $suffix) {
-            if (!isset($_FILES[$key]) || $_FILES[$key]['error'] !== UPLOAD_ERR_OK) {
-                $errors[] = "Fichier $key manquant ou invalide.";
-            }
-        }
-        if (count($errors) === 0) {
-            foreach ($filesNeeded as $key => $suffix) {
-                $dest = $uploadDir . $newId . $suffix;
-                move_uploaded_file($_FILES[$key]['tmp_name'], $dest);
-            }
-            file_put_contents($uploadDir . $newId . '_name.txt', $name);
-            $stmt = $mysqli->prepare('INSERT INTO skins (id, price, unlockingScore, id_type) VALUES (?, ?, ?, ?)');
-            $stmt->bind_param('iiii', $newId, $price, $unlockingScore, $type);
-            if ($stmt->execute()) {
-                $addSkinMsg = '<div style="color:green">Skin ajouté avec succès !</div>';
-            } else {
-                $addSkinMsg = '<div style="color:red">Erreur BDD : ' . $mysqli->error . '</div>';
-            }
+        loadEnv();
+        $password = $_POST['add_password'] ?? '';
+        $envPassword = getenv('MDP_ADDSKIN');
+        $type = intval($_POST['type'] ?? -1);
+        $name = trim($_POST['name'] ?? '');
+        $price = intval($_POST['price'] ?? 0);
+        $unlockingScore = intval($_POST['unlockingScore'] ?? 0);
+        if (!$envPassword) {
+            $addSkinMsg = '<div style="color:red">Erreur : mot de passe non défini côté serveur (MDP_ADDSKIN dans .env).</div>';
+        } elseif ($password !== $envPassword) {
+            $addSkinMsg = '<div style="color:red">Mot de passe incorrect.</div>';
+        } elseif ($type < 0 || $type > 2 || $name === '') {
+            $addSkinMsg = '<div style="color:red">Erreur : champs manquants ou invalides.</div>';
         } else {
-            foreach ($errors as $e) $addSkinMsg .= '<div style="color:red">' . $e . '</div>';
+            $res = $mysqli->query('SELECT MAX(id) as maxid FROM skins');
+            $row = $res->fetch_assoc();
+            $newId = intval($row['maxid']) + 1;
+            $errors = [];
+            $uploadDir = __DIR__ . '/res/';
+            $pattern = [
+                0 => ['shop' => '_shop.png', 'texture' => '_texture.png', 'obj' => '_obj.obj'],
+                1 => ['shop' => '_shop.png', 'texture' => '_texture.png'],
+                2 => ['shop' => '_shop.png', 'texture' => '_texture.png']
+            ];
+            $filesNeeded = $pattern[$type];
+            foreach ($filesNeeded as $key => $suffix) {
+                if (!isset($_FILES[$key]) || $_FILES[$key]['error'] !== UPLOAD_ERR_OK) {
+                    $errors[] = "Fichier $key manquant ou invalide.";
+                }
+            }
+            if (count($errors) === 0) {
+                foreach ($filesNeeded as $key => $suffix) {
+                    $dest = $uploadDir . $newId . $suffix;
+                    move_uploaded_file($_FILES[$key]['tmp_name'], $dest);
+                }
+                file_put_contents($uploadDir . $newId . '_name.txt', $name);
+                $stmt = $mysqli->prepare('INSERT INTO skins (id, price, unlockingScore, id_type) VALUES (?, ?, ?, ?)');
+                $stmt->bind_param('iiii', $newId, $price, $unlockingScore, $type);
+                if ($stmt->execute()) {
+                    $addSkinMsg = '<div style="color:green">Skin ajouté avec succès !</div>';
+                } else {
+                    $addSkinMsg = '<div style="color:red">Erreur BDD : ' . $mysqli->error . '</div>';
+                }
+            } else {
+                foreach ($errors as $e) $addSkinMsg .= '<div style="color:red">' . $e . '</div>';
+            }
         }
     }
 }
@@ -88,88 +97,93 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_skin'])) {
 $resDir = __DIR__ . '/res/';
 $skinFiles = scandir($resDir);
 $skinIdsWithFiles = [];
-foreach ($skinFiles as $file) {
-    if (preg_match('/^(\d+)_name\\.txt$/', $file, $matches)) {
-        $skinIdsWithFiles[] = intval($matches[1]);
+if (!$dbError) {
+    foreach ($skinFiles as $file) {
+        if (preg_match('/^(\d+)_name\\.txt$/', $file, $matches)) {
+            $skinIdsWithFiles[] = intval($matches[1]);
+        }
     }
-}
-$allIds = [];
-$res = $mysqli->query('SELECT id FROM skins');
-while ($row = $res->fetch_assoc()) {
-    $allIds[] = intval($row['id']);
-}
-$withFiles = array_intersect($allIds, $skinIdsWithFiles);
-$withoutFiles = array_diff($allIds, $skinIdsWithFiles);
-function getSkinData($id, $mysqli, $resDir) {
-    $nameFile = $resDir . $id . '_name.txt';
-    $shopImg = 'res/' . $id . '_shop.png';
-    $name = file_exists($nameFile) ? trim(file_get_contents($nameFile)) : 'Inconnu';
-    $stmt = $mysqli->prepare('SELECT price, unlockingScore, id_type FROM skins WHERE id = ?');
-    $stmt->bind_param('i', $id);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    $price = $unlockingScore = $type = null;
-    if ($row = $result->fetch_assoc()) {
-        $price = $row['price'];
-        $unlockingScore = $row['unlockingScore'];
-        $type = $row['id_type'];
+    $allIds = [];
+    $res = $mysqli->query('SELECT id FROM skins');
+    while ($row = $res->fetch_assoc()) {
+        $allIds[] = intval($row['id']);
     }
-    return [
-        'id' => $id,
-        'name' => $name,
-        'shopImg' => $shopImg,
-        'price' => $price,
-        'unlockingScore' => $unlockingScore,
-        'type' => $type
-    ];
-}
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
-    if (function_exists('loadEnv')) loadEnv();
-    $password = $_POST['password'] ?? '';
-    $envPassword = getenv('MDP_DELETESKIN');
-    if (!$envPassword) {
-        echo '<div style="color:red">Erreur : mot de passe non défini côté serveur (MDP_DELETESKIN dans .env).</div>';
-    } elseif ($password !== $envPassword) {
-        echo '<div style="color:red">Mot de passe incorrect.</div>';
-    } else {
-        $deleteId = intval($_POST['delete_id']);
-        $stmt = $mysqli->prepare('DELETE FROM skins WHERE id = ?');
-        $stmt->bind_param('i', $deleteId);
+    $withFiles = array_intersect($allIds, $skinIdsWithFiles);
+    $withoutFiles = array_diff($allIds, $skinIdsWithFiles);
+    function getSkinData($id, $mysqli, $resDir) {
+        $nameFile = $resDir . $id . '_name.txt';
+        $shopImg = 'res/' . $id . '_shop.png';
+        $name = file_exists($nameFile) ? trim(file_get_contents($nameFile)) : 'Inconnu';
+        $stmt = $mysqli->prepare('SELECT price, unlockingScore, id_type FROM skins WHERE id = ?');
+        $stmt->bind_param('i', $id);
         $stmt->execute();
-        $pattern = ['_name.txt', '_shop.png', '_texture.png', '_obj.obj'];
-        foreach ($pattern as $suffix) {
-            $f = $resDir . $deleteId . $suffix;
-            if (file_exists($f)) unlink($f);
+        $result = $stmt->get_result();
+        $price = $unlockingScore = $type = null;
+        if ($row = $result->fetch_assoc()) {
+            $price = $row['price'];
+            $unlockingScore = $row['unlockingScore'];
+            $type = $row['id_type'];
         }
-        $stmt2 = $mysqli->prepare('DELETE FROM userSkins WHERE skin_id = ?');
-        $stmt2->bind_param('i', $deleteId);
-        $stmt2->execute();
-        echo '<div style="color:green">Skin ' . $deleteId . ' supprimé.</div>';
-        echo '<script>window.location.href=window.location.href;</script>';
-        exit;
+        return [
+            'id' => $id,
+            'name' => $name,
+            'shopImg' => $shopImg,
+            'price' => $price,
+            'unlockingScore' => $unlockingScore,
+            'type' => $type
+        ];
     }
-}
-$skinsWithFiles = [];
-foreach ($withFiles as $id) {
-    $skinsWithFiles[] = getSkinData($id, $mysqli, $resDir);
-}
-$skinsWithoutFiles = [];
-foreach ($withoutFiles as $id) {
-    $skinsWithoutFiles[] = getSkinData($id, $mysqli, $resDir);
-}
-function sortSkinsByType($skins) {
-    $sorted = [0 => [], 1 => [], 2 => []];
-    foreach ($skins as $skin) {
-        if (isset($skin['type']) && in_array($skin['type'], [0,1,2])) {
-            $sorted[$skin['type']][] = $skin;
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
+        if (function_exists('loadEnv')) loadEnv();
+        $password = $_POST['password'] ?? '';
+        $envPassword = getenv('MDP_DELETESKIN');
+        if (!$envPassword) {
+            echo '<div style="color:red">Erreur : mot de passe non défini côté serveur (MDP_DELETESKIN dans .env).</div>';
+        } elseif ($password !== $envPassword) {
+            echo '<div style="color:red">Mot de passe incorrect.</div>';
         } else {
-            $sorted[0][] = $skin; // fallback
+            $deleteId = intval($_POST['delete_id']);
+            $stmt = $mysqli->prepare('DELETE FROM skins WHERE id = ?');
+            $stmt->bind_param('i', $deleteId);
+            $stmt->execute();
+            $pattern = ['_name.txt', '_shop.png', '_texture.png', '_obj.obj'];
+            foreach ($pattern as $suffix) {
+                $f = $resDir . $deleteId . $suffix;
+                if (file_exists($f)) unlink($f);
+            }
+            $stmt2 = $mysqli->prepare('DELETE FROM userSkins WHERE skin_id = ?');
+            $stmt2->bind_param('i', $deleteId);
+            $stmt2->execute();
+            echo '<div style="color:green">Skin ' . $deleteId . ' supprimé.</div>';
+            echo '<script>window.location.href=window.location.href;</script>';
+            exit;
         }
     }
-    return $sorted;
+    $skinsWithFiles = [];
+    foreach ($withFiles as $id) {
+        $skinsWithFiles[] = getSkinData($id, $mysqli, $resDir);
+    }
+    $skinsWithoutFiles = [];
+    foreach ($withoutFiles as $id) {
+        $skinsWithoutFiles[] = getSkinData($id, $mysqli, $resDir);
+    }
+    function sortSkinsByType($skins) {
+        $sorted = [0 => [], 1 => [], 2 => []];
+        foreach ($skins as $skin) {
+            if (isset($skin['type']) && in_array($skin['type'], [0,1,2])) {
+                $sorted[$skin['type']][] = $skin;
+            } else {
+                $sorted[0][] = $skin; // fallback
+            }
+        }
+        return $sorted;
+    }
+    $skinsWithFilesSorted = sortSkinsByType($skinsWithFiles);
+    $skinsWithoutFilesSorted = sortSkinsByType($skinsWithoutFiles);
+} else {
+    $skinsWithFilesSorted = [0=>[],1=>[],2=>[]];
+    $skinsWithoutFilesSorted = [0=>[],1=>[],2=>[]];
 }
-$skinsWithFilesSorted = sortSkinsByType($skinsWithFiles);
-$skinsWithoutFilesSorted = sortSkinsByType($skinsWithoutFiles);
 $typeLabels = [0 => 'Flèches', 1 => 'Planètes', 2 => 'Lunes'];
 ?>
 <!DOCTYPE html>
@@ -370,6 +384,9 @@ $typeLabels = [0 => 'Flèches', 1 => 'Planètes', 2 => 'Lunes'];
 <div class="main-flex-container">
     <div class="add-skin-form">
         <h2>Ajouter un skin</h2>
+        <?php if ($dbError): ?>
+            <div style="color:red;font-weight:bold;">Erreur de connexion à la base de données :<br><?= htmlspecialchars($dbError) ?></div>
+        <?php endif; ?>
         <?= $addSkinMsg ?>
         <form method="post" enctype="multipart/form-data">
             <label>Mot de passe admin : <input type="password" name="add_password" required></label>
