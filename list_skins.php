@@ -381,7 +381,14 @@ $typeLabels = [0 => 'Flèches', 1 => 'Planètes', 2 => 'Lunes'];
                 </select>
             </label>
             <label>Nom du skin : <input type="text" name="name" required></label>
-            <label>Prix : <input type="number" name="price" min="0" value="0"></label>
+            <label>Rareté :
+                <select name="rarity" id="rarity" onchange="document.getElementById('price').value=this.value;">
+                    <option value="2500">Commun (2500)</option>
+                    <option value="5000">Rare (5000)</option>
+                    <option value="10000">Epique (10000)</option>
+                </select>
+            </label>
+            <input type="hidden" name="price" id="price" value="2500">
             <label>Score de déblocage : <input type="number" name="unlockingScore" min="0" value="0"></label>
             <div class="dropzone">
                 <label>Image shop (.png) : <input type="file" name="shop" accept="image/png" required></label>
