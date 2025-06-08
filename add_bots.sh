@@ -1,8 +1,10 @@
 #!/bin/bash
 
 API_URL="http://chaelpixserver.ddns.net/apis/ovar"
-BOT_COUNT=100
+BOT_COUNT=10
 NAMES_FILE="names.txt"
+MAX_SCORE=150000
+MIN_SCORE=100000
 
 echo "Checking HTTP connectivity..."
 curl -v --head --silent --fail -L "$API_URL/register.php"
@@ -50,7 +52,9 @@ for NAME in "${ALL_NAMES[@]}"; do
     if [[ "$AVAIL" == *'"available":true'* ]]; then
         USED_NAMES+=("$CLEANED_NAME")
         UUID=$(generate_uuid)
-        SCORE=$(( (RANDOM % 1000) * 10 )) # Multiple of 10
+        # Generate score between MIN_SCORE and MAX_SCORE, multiple of 10
+        RANGE=$(( (MAX_SCORE - MIN_SCORE) / 10 + 1 ))
+        SCORE=$(( (RANDOM % RANGE) * 10 + MIN_SCORE ))
 
         REGISTER_URL="${API_URL}/register.php?uuid=${UUID}&username=${CLEANED_NAME}"
         SCORE_URL="${API_URL}/send_score.php?uuid=${UUID}&score=${SCORE}"
