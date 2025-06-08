@@ -25,7 +25,7 @@ $q->fetch();
 $q->close();
 
 if ($bestscore === null || $name === null) {
-    echo json_encode(['rank' => -1, 'totalPlayers' => $totalPlayers]);
+    echo json_encode(['rank' => -1, 'totalPlayers' => $totalPlayers, 'score' => null]);
     exit;
 }
 
@@ -41,6 +41,7 @@ $rank = $higher_count + 1;
 
 echo json_encode([
     'rank' => intval($rank),
-    'totalPlayers' => $totalPlayers
+    'totalPlayers' => $totalPlayers,
+    'score' => $bestscore
 ]);
 ?>
