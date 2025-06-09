@@ -27,7 +27,7 @@ if ($userResult->num_rows === 0) {
 
 // Get role value
 $userData = $userResult->fetch_assoc();
-$role = intval($userData['role']);
+$role = $userData['role'];
 
 // Return the result as JSON
 echo json_encode(["role" => $role]);
