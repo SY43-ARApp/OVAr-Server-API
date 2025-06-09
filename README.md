@@ -66,6 +66,17 @@ JSON: `{ "money": <int> }` or error JSON
 
 ---
 
+### GET USER ROLE
+
+`GET` **URL:**  
+`http://chaelpixserver.ddns.net/apis/ovar/get_user_role.php?uuid=<uuid>`
+
+**Returns:**  
+JSON: `{ "role": <String> }` or error JSON
+
+---
+
+
 ### GET USER SKINS
 
 `GET` **URL:**  
@@ -107,6 +118,7 @@ JSON:
 - `get_scores.php` : Récupération des scores globaux
 - `get_user_money.php` : Récupération de l'argent d'un utilisateur
 - `get_user_skins.php` : Récupération des skins possédés par un utilisateur
+- `get_user_role.php` : Récupération du rôle d'un utilisateur
 - `get_all_skins.php` : Liste de tous les skins disponibles
 - `buy_skin.php` : Achat d'un skin (voir détails ci-dessus)
 - `update_server.php` : Script de mise à jour serveur
@@ -123,6 +135,7 @@ JSON:
 | `/send_score.php`                        | GET     | user_id/uuid, score, arrows_thrown, planets_hit, levels_passed | `SCORE_ADDED` ou `FAIL`                                                                                 |
 | `/get_scores.php`                        | GET     | limit (optionnel)                                     | `[ { "username": "player1", "score": 4000 }, ... ]`                                                |
 | `/get_user_money.php`                    | GET     | uuid                                                  | `{ "money": <int> }` ou erreur JSON                                                                   |
+| `/get_user_role.php`                     | GET     | uuid                                                  | `{ "role": <String> }` ou erreur JSON                                                                  |
 | `/get_user_skins.php`                    | GET     | uuid                                                  | `[ { "skinId": <int>, "type": <int> }, ... ]`                                                        |
 | `/get_all_skins.php`                     | GET     |                                                       | `[ { "id": <int>, "price": <int>, "minimalScore": <int>, "type": <int> }, ... ]`                  |
 | `/buy_skin.php`                          | GET     | uuid, skin_id                                         | `{ "success": true, "message": "SKIN_PURCHASED" }` ou `{ "success": false, "error": ... }`       |
