@@ -50,7 +50,6 @@ if ($role != "A") {
     exit;
 }
 
-
 // Check if score exists
 $scoreCheck = $mysqli->prepare("SELECT id FROM score WHERE uuid = ? AND score = ?");
 $scoreCheck->bind_param("si", $userUUID, $score);
@@ -62,7 +61,6 @@ if ($scoreResult->num_rows === 0) {
 }
 $scoreId = $scoreResult->fetch_assoc()['id'];
 
-echo "delete score";
 
 // Delete the score
 $deleteScore = $mysqli->prepare("DELETE FROM score WHERE id = ?");
@@ -73,15 +71,11 @@ if ($deleteScore->affected_rows === 0) {
     exit;
 }
 
-echo "get score";
-
 //Get the user's best score
 $bestScoreCheck = $mysqli->prepare("SELECT s.score FROM score s WHERE uuid = ? ORDER BY s.score DESC LIMIT 1");
 $bestScoreCheck->bind_param("s", $userUUID);
 $bestScoreCheck->execute();
 $bestScoreResult = $bestScoreCheck->get_result();
-
-echo $bestScoreResult->fetch_assoc()['score'];
 
 $bestScore = 0;
 if ($bestScoreResult->num_rows > 0) {
@@ -90,13 +84,11 @@ if ($bestScoreResult->num_rows > 0) {
     echo json_encode(["success" => true, "bestScore" => $bestScore]);
 }
 
-echo "updateBestScore: ";
 //Update the user's best score
 $updateBestScore = $mysqli->prepare("UPDATE user SET bestScore = ? WHERE uuid = ?");
 $updateBestScore->bind_param("is", $bestScore, $userUUID);
 $updateBestScore->execute();
 
-echo $updateBestScore;
 if ($updateBestScore->affected_rows === 0) {
     echo json_encode(["success" => false, "error" => "UPDATE_BEST_SCORE_FAILED"]);
 }
