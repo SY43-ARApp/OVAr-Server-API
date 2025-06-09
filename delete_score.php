@@ -52,7 +52,7 @@ if ($role != "A") {
 
 
 // Check if score exists
-$scoreCheck = $mysqli->prepare("SELECT id FROM scores WHERE uuid = ? AND score = ?");
+$scoreCheck = $mysqli->prepare("SELECT id FROM score WHERE uuid = ? AND score = ?");
 $scoreCheck->bind_param("si", $userUUID, $score);
 $scoreCheck->execute();
 $scoreResult = $scoreCheck->get_result();
