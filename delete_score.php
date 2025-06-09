@@ -1,4 +1,10 @@
 <?php
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
+mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+
 require 'DB.php';
 header('Content-Type: application/json');
 
@@ -43,7 +49,7 @@ if ($role != "A") {
     echo json_encode(["success" => false, "error" => "INSUFFICIENT_PERMISSIONS"]);
     exit;
 }
-echo "check score";
+
 
 // Check if score exists
 $scoreCheck = $mysqli->prepare("SELECT id FROM scores WHERE uuid = ? AND score = ?");
