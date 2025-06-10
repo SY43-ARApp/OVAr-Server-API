@@ -1,6 +1,8 @@
 <?php
 require 'DB.php';
 
+header('Content-Type: application/json');
+
 $limit = intval($_GET['limit'] ?? -1);
 
 $sql = "SELECT u.name as username, u.bestscore as score
@@ -23,6 +25,5 @@ while ($row = $res->fetch_assoc()) {
     $data[] = $row;
 }
 
-header('Content-Type: application/json');
 echo json_encode($data);
 ?>
