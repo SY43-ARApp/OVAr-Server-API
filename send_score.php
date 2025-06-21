@@ -7,17 +7,15 @@ function calculate_money($levels_passed, $base = 1, $scale = 1.5, $offset = 1) {
     $total_money = 0;
 
     for ($level = 1; $level <= $levels_passed; $level++) {
-        echo "Level $level:";
         // Calcule l'argent gagné pour ce niveau, avec une formule logarithmique
         $money_for_level = (int) floor($base + log($level + $offset, $scale));
-        echo " Money = $money_for_level</br>";
         $total_money += $money_for_level;
     }
 
     return $total_money;
 }
 
-// TODO: Check if uuid is valid
+// Récupération des paramètres
 $uuid = $_GET['user_id'] ?? $_GET['uuid'] ?? '';
 $score = intval($_GET['score'] ?? 0);
 $arrows_thrown = intval($_GET['arrows_thrown'] ?? 0);
