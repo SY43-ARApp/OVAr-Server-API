@@ -1,0 +1,38 @@
+@startuml
+!define primary_key(x) <b><color:#b8861b><&key></color> x</b>
+!define foreign_key(x) <color:#aaaaaa><&key></color> x
+!define column(x) <color:#efefef><&media-record></color> x
+!define table(x) entity x << (T, white) >>
+
+table( user ) {
+  primary_key( uuid ): CHARACTER VARYING
+  column( bestscore ): INT
+  column( role ): CHAR
+  column( name ): CHARACTER VARYING
+}
+table( score ) {
+  primary_key( id ): UNSIGNED INTEGER
+  column( time ): TIMESTAMP
+  column( score ): INTEGER
+  column( arrowsThrown ): INTEGER
+  column( planetsHit ): INTEGER
+  column( levelsPassed ): INTEGER
+  foreign_key( uuid ): CHARACTER VARYING <<FK>>
+}
+table( skin ) {
+  primary_key( id ): UNSIGNED INTEGER 
+  column( price ): INTEGER
+  column( unlockingScore ): INTEGER
+  column( id_type ): INTEGER
+}
+table( user_skin ) {
+  primary_key( id ): UNSIGNED INTEGER
+  foreign_key( uuid ): CHARACTER VARYING <<FK>>
+  foreign_key( skin_id ): UNSIGNED INTEGER <<FK>>
+}
+
+user_skin --> skin : skin_id:id
+user <-- score : uuid:uuid
+user <- user_skin : uuid:uuid
+
+@enduml
